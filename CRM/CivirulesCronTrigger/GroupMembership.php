@@ -52,14 +52,34 @@ class CRM_CivirulesCronTrigger_GroupMembership extends CRM_Civirules_Trigger_Cro
       return false;
     }
 
-    $sql = "SELECT c.*
-            FROM `civicrm_group_contact` `c`
-            WHERE `c`.`group_id` = %1 AND c.status = 'Added'
-            AND `c`.`contact_id` NOT IN (
-              SELECT `rule_log`.`contact_id`
-              FROM `civirule_rule_log` `rule_log`
-              WHERE `rule_log`.`rule_id` = %2 AND DATE(`rule_log`.`log_date`) = DATE(NOW())
-            )";
+    $group = civicrm_api3('Group', 'getsingle', array(
+      'sequential' => 1,
+      'return' => "cache_date",
+      'id' => $this->triggerParams['group_id']
+    ));
+
+    $is_smart_group = array_key_exists( 'cache_date', $group );
+
+    if( ! $is_smart_group ) {
+      $sql = "SELECT c.*
+              FROM `civicrm_group_contact` `c`
+              WHERE `c`.`group_id` = %1 AND c.status = 'Added'
+              AND `c`.`contact_id` NOT IN (
+                SELECT `rule_log`.`contact_id`
+                FROM `civirule_rule_log` `rule_log`
+                WHERE `rule_log`.`rule_id` = %2 AND DATE(`rule_log`.`log_date`) = DATE(NOW())
+              )";
+    } else {
+      $sql = "SELECT c.*
+              FROM `civicrm_group_contact_cache` `c`
+              WHERE `c`.`group_id` = %1
+              AND `c`.`contact_id` NOT IN (
+                SELECT `rule_log`.`contact_id`
+                FROM `civirule_rule_log` `rule_log`
+                WHERE `rule_log`.`rule_id` = %2 AND DATE(`rule_log`.`log_date`) = DATE(NOW())
+              )";
+    }
+    
     $params[1] = array($this->triggerParams['group_id'], 'Integer');
     $params[2] = array($this->ruleId, 'Integer');
     $this->dao = CRM_Core_DAO::executeQuery($sql, $params, true, 'CRM_Contact_DAO_GroupContact');
