@@ -25,6 +25,10 @@ class CRM_Civirules_Upgrader extends CRM_Civirules_Upgrader_Base {
     $this->executeSqlFile('sql/uninstall.sql');
   }
 
+  public function disable() {
+    $this->executeSqlFile('sql/disable.sql');
+  }
+
   public function upgrade_1001() {
     CRM_Core_DAO::executeQuery("ALTER TABLE `civirule_rule` ADD event_params TEXT NULL AFTER event_id");
     if (CRM_Core_DAO::checkTableExists("civicrm_event")) {
